@@ -1,4 +1,5 @@
 import os
+os.environ["GRADIO_DISABLE_AUDIO"] = "True"
 import requests
 import gradio as gr
 
