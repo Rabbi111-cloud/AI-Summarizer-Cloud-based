@@ -9,9 +9,6 @@ env/
 venv/
 .venv/
 
-# Jupyter notebooks checkpoints
-.ipynb_checkpoints/
-
 # OS files
 .DS_Store
 Thumbs.db
@@ -23,7 +20,7 @@ Thumbs.db
 .env
 *.env
 
-# PyCharm/VSCode settings
+# IDE / Editor files
 .idea/
 .vscode/
 
