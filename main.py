@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -18,18 +19,15 @@ if not OPENROUTER_API_KEY:
 # -----------------------------
 app = FastAPI(
     title="Cloud AI Summarizer & Sentiment Analyzer",
-    description="POST endpoints to summarize text and analyze sentiment via OpenRouter.",
-    version="1.0.0"
+    description="POST endpoints to summarize text & analyze sentiment via OpenRouter.",
+    version="1.1.0"
 )
 
-# -----------------------------
-# Request model
-# -----------------------------
 class TextRequest(BaseModel):
     text: str
 
 # -----------------------------
-# Generic OpenRouter Call
+# OpenRouter Caller
 # -----------------------------
 def call_openrouter(prompt: str, model: str = MODEL) -> str:
     if not OPENROUTER_API_KEY:
@@ -46,13 +44,14 @@ def call_openrouter(prompt: str, model: str = MODEL) -> str:
     }
 
     try:
-        response = requests.post(OPENROUTER_URL, json=body, headers=headers, timeout=30)
-        data = response.json()
-        choices = data.get("choices")
-        if choices and isinstance(choices, list):
-            return choices[0].get("message", {}).get("content", "")
-        else:
-            return f"Error: No choices returned. Raw response: {data}"
+        r = requests.post(OPENROUTER_URL, json=body, headers=headers, timeout=40)
+        data = r.json()
+
+        if "choices" not in data:
+            return f"Error: No choices. Raw response: {data}"
+
+        return data["choices"][0]["message"]["content"]
+
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -66,49 +65,74 @@ def root():
 @app.post("/summarize")
 def summarize(request: TextRequest):
     if not request.text.strip():
-        raise HTTPException(status_code=400, detail="No text provided.")
-    result = call_openrouter(
-        f"Summarize the following text in 3-6 sentences:\n\n{request.text}"
+        raise HTTPException(400, "No text provided.")
+    summary = call_openrouter(
+        f"Summarize the following text in 3–6 sentences:\n\n{request.text}"
     )
-    return {"summary": result}
-
+    return {"summary": summary}
 
 @app.post("/sentiment")
 def sentiment(request: TextRequest):
     if not request.text.strip():
-        raise HTTPException(status_code=400, detail="No text provided.")
-    result = call_openrouter(
-        f"Analyze the sentiment of the following text. "
-        "Return JSON with keys: sentiment (Positive, Neutral, Negative), "
-        "confidence (0-1), explanation (one sentence).\n\nText:\n{request.text}"
-    )
-    return {"sentiment": result}
+        raise HTTPException(400, "No text provided.")
 
+    raw = call_openrouter(
+        f"""
+        Analyze the sentiment of the text below. 
+        Return JSON ONLY in this format:
+        {{
+            "sentiment": "Positive | Neutral | Negative",
+            "confidence": 0.0–1.0,
+            "explanation": "One-sentence explanation"
+        }}
+
+        Text:
+        {request.text}
+        """
+    )
+
+    # Convert returned JSON-string to python dict
+    try:
+        sentiment_json = json.loads(raw)
+    except:
+        sentiment_json = {"sentiment": "Unknown", "raw": raw}
+
+    return {"sentiment": sentiment_json}
 
 @app.post("/analyze")
 def analyze(request: TextRequest):
-    """
-    Combined endpoint: returns both summary and sentiment.
-    """
     if not request.text.strip():
-        raise HTTPException(status_code=400, detail="No text provided.")
+        raise HTTPException(400, "No text provided.")
 
     summary = call_openrouter(
-        f"Summarize the following text in 3-6 sentences:\n\n{request.text}"
+        f"Summarize the following text in 3–6 sentences:\n\n{request.text}"
     )
-    sentiment_result = call_openrouter(
-        f"Analyze the sentiment of the following text. "
-        "Return JSON with keys: sentiment (Positive, Neutral, Negative), "
-        "confidence (0-1), explanation (one sentence).\n\nText:\n{request.text}"
+
+    raw_sentiment = call_openrouter(
+        f"""
+        Analyze the sentiment of this text and return JSON (NO explanation outside JSON):
+
+        {{
+            "sentiment": "Positive | Neutral | Negative",
+            "confidence": 0.0–1.0,
+            "explanation": "One-sentence explanation"
+        }}
+
+        Text:
+        {request.text}
+        """
     )
-    return {"summary": summary, "sentiment": sentiment_result}
 
+    try:
+        sentiment_json = json.loads(raw_sentiment)
+    except:
+        sentiment_json = {"sentiment": "Unknown", "raw": raw_sentiment}
 
-# -----------------------------
-# Local test / development
-# -----------------------------
+    return {
+        "summary": summary,
+        "sentiment": sentiment_json
+    }
+
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
-
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))
