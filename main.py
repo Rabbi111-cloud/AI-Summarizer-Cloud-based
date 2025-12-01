@@ -73,3 +73,11 @@ Text:
         return {"sentiment": response.json()["choices"][0]["message"]["content"]}
     except:
         return {"error": "Could not analyze sentiment", "raw_response": response.text}
+try:
+    return {"summary": response.json()["choices"][0]["message"]["content"]}
+except Exception as e:
+    return {
+        "error": "OpenRouter did not return a valid response",
+        "details": str(e),
+        "raw_response": response.text
+    }
