@@ -16,7 +16,11 @@ if not OPENROUTER_API_KEY:
 # -----------------------------
 # FastAPI app
 # -----------------------------
-app = FastAPI(title="Cloud AI Summarizer & Sentiment Analyzer")
+app = FastAPI(
+    title="Cloud AI Summarizer & Sentiment Analyzer",
+    description="POST endpoints to summarize text and analyze sentiment via OpenRouter.",
+    version="1.0.0"
+)
 
 # -----------------------------
 # Request model
@@ -55,6 +59,10 @@ def call_openrouter(prompt: str, model: str = MODEL) -> str:
 # -----------------------------
 # Routes
 # -----------------------------
+@app.get("/")
+def root():
+    return {"message": "Cloud AI Summarizer & Sentiment Analyzer is running!"}
+
 @app.post("/summarize")
 def summarize(request: TextRequest):
     if not request.text.strip():
@@ -94,3 +102,13 @@ def analyze(request: TextRequest):
         "confidence (0-1), explanation (one sentence).\n\nText:\n{request.text}"
     )
     return {"summary": summary, "sentiment": sentiment_result}
+
+
+# -----------------------------
+# Local test / development
+# -----------------------------
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
