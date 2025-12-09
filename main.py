@@ -4,6 +4,8 @@ import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # -----------------------------
 # Environment Variables
 # -----------------------------
@@ -22,7 +24,14 @@ app = FastAPI(
     description="POST endpoints to summarize text & analyze sentiment via OpenRouter.",
     version="1.1.0"
 )
-
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # allows requests from any frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 class TextRequest(BaseModel):
     text: str
 
