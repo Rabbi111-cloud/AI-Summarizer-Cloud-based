@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud AI Summarizer & Sentiment Analyzer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Cloud AI Summarizer & Sentiment Analyzer</h1>
+
+        <textarea id="inputText" placeholder="Enter your text here..."></textarea>
+
+        <div class="buttons">
+            <button onclick="summarize()">Summarize</button>
+            <button onclick="sentiment()">Sentiment</button>
+            <button onclick="analyzeBoth()">Analyze Both</button>
+        </div>
+
+        <h3>Output</h3>
+        <pre id="outputBox"></pre>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
